@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { TicketReceipt } from './TicketReceipt';
 import { usePOSStore } from '@/store/usePOSStore';
-import { Printer, Trash2, X } from 'lucide-react';
+import { Printer, Trash2, X, CreditCard, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export const TicketCart = () => {
     const items = usePOSStore(state => state.ticketItems);
@@ -11,9 +13,65 @@ export const TicketCart = () => {
     const clearCart = usePOSStore(state => state.clearTicket);
     const total = usePOSStore(state => state.totalVenta());
     const moneda = usePOSStore(state => state.monedaOperacion);
+    const setLastProcessedTicket = usePOSStore(state => state.setLastProcessedTicket);
 
-    const handlePrint = () => {
-        window.print();
+    const [isProcessing, setIsProcessing] = useState(false);
+    const supabase = createClientComponentClient();
+
+    const handleProcessPayment = async () => {
+        if (items.length === 0) return;
+        setIsProcessing(true);
+
+        try {
+            // 1. Preparar Payload para RPC
+            // NOTA: En produccion IDs deben venir de Auth/Context
+            const payload = {
+                p_comercializadora_id: 'd9e0f3a4-8b6a-4d3c-9e2f-1a2b3c4d5e6f', // Mock/Admin ID
+                p_taquilla_id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef', // Mock/Taquilla ID
+                p_moneda: moneda,
+                p_items: items.map(i => ({
+                    loteria_id: i.loteria_id,
+                    sorteo_id: i.sorteo_id,
+                    elemento_codigo: i.elemento_codigo,
+                    monto: i.monto
+                }))
+            };
+
+            // 2. Llamar RPC (Simulado por ahora para fallback, pero intentamos RPC real si existe)
+            // const { data, error } = await supabase.rpc('procesar_apuesta', payload);
+
+            // SIMULACION DE EXITO (Para demo frontend sin backend full configurado)
+            // En implementacion real, descomentar RPC arriba y usar data
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            const mockResponse = {
+                serial: Math.random().toString(36).substr(2, 10).toUpperCase(),
+                numero_ticket: Math.floor(Math.random() * 100000000).toString().padStart(8, '0'),
+                fecha_venta: new Date().toISOString(),
+                total: total
+            };
+
+            // 3. Exito
+            setLastProcessedTicket({
+                serial: mockResponse.serial,
+                numero_ticket: mockResponse.numero_ticket,
+                fecha_venta: mockResponse.fecha_venta,
+                items: [...items], // Guardamos copia de items procesados para el recibo
+                total: total
+            });
+
+            // 4. Imprimir y Limpiar
+            setTimeout(() => {
+                window.print();
+                // Opcional: limpiar despues de imprimir
+                // clearCart(); 
+            }, 100);
+
+        } catch (error) {
+            console.error('Error procesando:', error);
+            alert('Error al procesar la venta. Intente de nuevo.');
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     return (
@@ -58,6 +116,7 @@ export const TicketCart = () => {
                                 <button
                                     onClick={() => removeItem(item.id)}
                                     className="text-slate-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                    disabled={isProcessing}
                                 >
                                     <Trash2 size={16} />
                                 </button>
@@ -84,12 +143,21 @@ export const TicketCart = () => {
                 </div>
 
                 <button
-                    onClick={handlePrint}
-                    disabled={items.length === 0}
-                    className="w-full h-14 mt-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-white font-bold text-lg shadow-lg shadow-purple-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
+                    onClick={handleProcessPayment}
+                    disabled={items.length === 0 || isProcessing}
+                    className="w-full h-14 mt-4 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl text-white font-bold text-lg shadow-lg shadow-emerald-900/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
                 >
-                    <Printer size={20} />
-                    IMPRIMIR
+                    {isProcessing ? (
+                        <>
+                            <Loader2 size={24} className="animate-spin" />
+                            PROCESANDO...
+                        </>
+                    ) : (
+                        <>
+                            <CreditCard size={24} />
+                            PROCESAR APUESTA
+                        </>
+                    )}
                 </button>
             </div>
 

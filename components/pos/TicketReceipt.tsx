@@ -4,9 +4,13 @@ import React from 'react';
 import { usePOSStore } from '@/store/usePOSStore';
 
 export const TicketReceipt = () => {
-    const items = usePOSStore(state => state.ticketItems);
-    const total = usePOSStore(state => state.totalVenta());
+    const ticket = usePOSStore(state => state.lastProcessedTicket);
     const moneda = usePOSStore(state => state.monedaOperacion);
+
+    if (!ticket) return null;
+
+    const items = ticket.items;
+    const total = ticket.total;
 
     // Agrupar items POR LOTERIA
     const groupedItems = items.reduce((acc, item) => {
@@ -18,16 +22,11 @@ export const TicketReceipt = () => {
         return acc;
     }, {} as Record<string, typeof items>);
 
-    const fecha = new Date().toLocaleString('es-VE', {
+    // Formatear Fecha Venta real
+    const fecha = new Date(ticket.fecha_venta).toLocaleString('es-VE', {
         day: '2-digit', month: '2-digit', year: '2-digit',
         hour: '2-digit', minute: '2-digit', hour12: true
     });
-
-    // Simulacion de Seriales (En produccion vienen de BD)
-    // S/N: 10 Digitos Alfanumericos
-    const serialAlfanumerico = Math.random().toString(36).substr(2, 10).toUpperCase().padEnd(10, 'X');
-    // N/T: 8 Digitos Numericos (Secuencial Global)
-    const numeroTicket = Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
 
     // Helper formato hora compacta (12pm, 10am)
     const formatTime = (timeStr: string) => {
@@ -44,18 +43,18 @@ export const TicketReceipt = () => {
         <div className="hidden print:block print:w-full print:max-w-[58mm] print:font-mono print:text-black print:text-[12px] print:leading-tight">
             {/* Margenes manejados por @page en CSS global */}
             <div className="px-1 pt-2 pb-8">
-                
+
                 {/* Header */}
                 <div className="text-center mb-2">
                     <h1 className="text-sm font-black uppercase tracking-wider">AGENCIA: AGENCIA DEMO</h1>
                     <p className="font-bold text-[10px] mt-0.5">Taquilla: 01</p>
                     <p className="font-bold text-[10px] uppercase">{fecha}</p>
-                    
+
                     <div className="flex justify-between px-1 mt-2 text-[11px] font-black uppercase">
-                        <span>N/T:{numeroTicket}</span>
+                        <span>N/T:{ticket.numero_ticket}</span>
                     </div>
                     <div className="text-center text-[11px] font-black uppercase">
-                        <span>S/N:{serialAlfanumerico}</span>
+                        <span>S/N:{ticket.serial}</span>
                     </div>
                 </div>
 

@@ -34,6 +34,17 @@ interface POSState {
     clearTicket: () => void;
     setMontoGlobal: (monto: number) => void;
 
+    // Estado de Ticket Procesado (Para impresión)
+    lastProcessedTicket: {
+        serial: string;
+        numero_ticket: string;
+        fecha_venta: string;
+        items: TicketItem[];
+        total: number;
+    } | null;
+
+    setLastProcessedTicket: (ticket: POSState['lastProcessedTicket']) => void;
+
     // Getters (Computados)
     totalVenta: () => number;
 }
@@ -46,6 +57,7 @@ export const usePOSStore = create<POSState>((set, get) => ({
 
     ticketItems: [],
     montoGlobalInput: 0,
+    lastProcessedTicket: null,
 
     setLoteria: (loteria) => set({ loteriaSeleccionada: loteria, sorteosSeleccionados: [] }), // Reset sorteos al cambiar loteria
 
@@ -71,7 +83,9 @@ export const usePOSStore = create<POSState>((set, get) => ({
         ticketItems: state.ticketItems.filter((i) => i.id !== itemId)
     })),
 
-    clearTicket: () => set({ ticketItems: [] }),
+    clearTicket: () => set({ ticketItems: [], lastProcessedTicket: null }),
+
+    setLastProcessedTicket: (ticket) => set({ lastProcessedTicket: ticket }),
 
     totalVenta: () => {
         const { ticketItems } = get();
