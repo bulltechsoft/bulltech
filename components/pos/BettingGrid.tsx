@@ -196,13 +196,14 @@ export const BettingGrid = () => {
                 </div>
             </div>
 
-            {/* Header 0 / 00 - Fijo Arriba (50% Ancho cada uno) */}
+            {/* Header 0 / 00 - Fijo Arriba */}
             <div className="p-1 pb-0 flex gap-1">
                 <div className="flex-1">
                     <Cell
                         data={ANIMALITOS_DATA[0]}
                         selected={isSelected('0')}
                         onClick={() => handleCellClick('0')}
+                        compact
                     />
                 </div>
                 <div className="flex-1">
@@ -210,19 +211,21 @@ export const BettingGrid = () => {
                         data={ANIMALITOS_DATA[1]}
                         selected={isSelected('00')}
                         onClick={() => handleCellClick('00')}
+                        compact
                     />
                 </div>
             </div>
 
-            {/* Scrollable Area (Grid 1-36) */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
-                <div className="grid grid-cols-4 gap-1">
+            {/* Scrollable Area (Grid 1-36 in 3 Columns) */}
+            <div className="flex-1 p-1 overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-3 gap-1">
                     {ANIMALITOS_DATA.slice(2).map((animal) => (
                         <Cell
                             key={animal.codigo}
                             data={animal}
                             selected={isSelected(animal.codigo)}
                             onClick={() => handleCellClick(animal.codigo)}
+                            compact
                         />
                     ))}
                 </div>
@@ -231,13 +234,13 @@ export const BettingGrid = () => {
     );
 };
 
-// Componente Celda (Compacta, Color, Nombre, Redondeada)
-const Cell = ({ data, selected, onClick }: { data: { codigo: string, nombre: string, color: string }, selected: boolean, onClick: () => void }) => {
+// Componente Celda (Compacta para grilla densa)
+const Cell = ({ data, selected, onClick, compact = false }: { data: { codigo: string, nombre: string, color: string }, selected: boolean, onClick: () => void, compact?: boolean }) => {
     return (
         <button
             onClick={onClick}
             className={`
-                relative w-full h-12 flex flex-col items-center justify-center overflow-hidden rounded-md border transition-all duration-75 group shadow-sm
+                relative w-full ${compact ? 'h-10' : 'h-12'} flex flex-col items-center justify-center overflow-hidden rounded-md border transition-all duration-75 group shadow-sm
                 ${selected
                     ? 'border-yellow-400 z-10 ring-1 ring-yellow-400 scale-[0.98] brightness-125'
                     : 'border-transparent hover:border-white/20 hover:brightness-110'
@@ -246,8 +249,8 @@ const Cell = ({ data, selected, onClick }: { data: { codigo: string, nombre: str
             `}
         >
             <div className="flex flex-col items-center leading-none">
-                <span className="text-3xl font-black text-white drop-shadow-md tracking-tighter">{data.codigo}</span>
-                <span className="text-[7px] font-bold text-white/90 uppercase tracking-tighter mt-0.5">{data.nombre}</span>
+                <span className={`${compact ? 'text-xl' : 'text-3xl'} font-black text-white drop-shadow-md tracking-tighter`}>{data.codigo}</span>
+                {!compact && <span className="text-[7px] font-bold text-white/90 uppercase tracking-tighter mt-0.5">{data.nombre}</span>}
             </div>
         </button>
     );

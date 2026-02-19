@@ -29,20 +29,25 @@ export const POSShell = ({ children }: { children: React.ReactNode }) => {
                 <LogOut size={18} />
             </button>
 
-            {/* Main Container Centered */}
-            <div className="relative z-10 w-full h-full flex items-center justify-center p-4">
+            {/* Main Container Centered with Header/Footer Space */}
+            <div className="relative z-10 w-full h-full flex flex-col items-center justify-center py-20 px-8">
 
-                {/* Animated Border Wrapper */}
-                <div className="relative w-full h-full max-w-[1920px] rounded-2xl p-[1px] overflow-hidden shadow-2xl shadow-purple-900/20">
-                    {/* Rotating Border Gradient REMOVED for performance */}
-                    {/* <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200%] h-[200%] animate-[spin_8s_linear_infinite] bg-[conic-gradient(from_0deg,transparent_0deg,transparent_90deg,#a855f7_180deg,#ec4899_270deg,transparent_360deg)] opacity-70 blur-md" /> */}
-                    <div className="absolute inset-0 rounded-2xl border border-white/5 shadow-[0_0_40px_rgba(168,85,247,0.1)]" />
+                {/* HEADER PLACEHOLDER (Visual Guide) */}
+                {/* <div className="absolute top-0 left-0 w-full h-20 bg-red-900/30 flex items-center justify-center text-white font-bold">HEADER</div> */}
+
+                {/* Animated Border Wrapper - Reduced Size */}
+                <div className="relative w-full max-w-7xl h-full max-h-[800px] rounded-3xl p-[1px] overflow-hidden shadow-2xl shadow-purple-900/40 transform transition-all">
+
+                    <div className="absolute inset-0 rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(168,85,247,0.15)]" />
 
                     {/* Glass Card Content with Grid */}
-                    <div className="relative w-full h-full bg-slate-900/85 backdrop-blur-2xl rounded-2xl border border-white/5 overflow-hidden grid grid-cols-[18%_22%_60%]">
+                    <div className="relative w-full h-full bg-slate-950/90 backdrop-blur-3xl rounded-3xl border border-white/5 overflow-hidden grid grid-cols-[30%_30%_40%]">
                         {children}
                     </div>
                 </div>
+
+                {/* FOOTER PLACEHOLDER (Visual Guide) */}
+                {/* <div className="absolute bottom-0 left-0 w-full h-20 bg-blue-900/30 flex items-center justify-center text-white font-bold">FOOTER BUTTONS</div> */}
             </div>
         </div>
     );
