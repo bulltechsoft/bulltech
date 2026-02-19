@@ -9,12 +9,14 @@ import { LogOut } from 'lucide-react';
 import { VoidTicketModal } from '@/components/pos/modals/VoidTicketModal';
 import { ReprintTicketModal } from '@/components/pos/modals/ReprintTicketModal';
 import { VentasModal } from '@/components/pos/modals/VentasModal';
+import { PayTicketModal } from '@/components/pos/modals/PayTicketModal';
 
 export const POSShell = ({ children }: { children: React.ReactNode }) => {
     const router = useRouter();
     const [showVoidModal, setShowVoidModal] = useState(false);
     const [showReprintModal, setShowReprintModal] = useState(false);
     const [showVentasModal, setShowVentasModal] = useState(false);
+    const [showPayModal, setShowPayModal] = useState(false);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -30,6 +32,7 @@ export const POSShell = ({ children }: { children: React.ReactNode }) => {
             <VoidTicketModal isOpen={showVoidModal} onClose={() => setShowVoidModal(false)} />
             <ReprintTicketModal isOpen={showReprintModal} onClose={() => setShowReprintModal(false)} />
             <VentasModal isOpen={showVentasModal} onClose={() => setShowVentasModal(false)} />
+            <PayTicketModal isOpen={showPayModal} onClose={() => setShowPayModal(false)} />
 
             {/* Logout Button (Absolute Top Left) */}
             <button
@@ -81,7 +84,10 @@ export const POSShell = ({ children }: { children: React.ReactNode }) => {
                                 >
                                     <span className="opacity-50 group-hover:opacity-100 transition-opacity">📊</span> VENTAS
                                 </button>
-                                <button className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg border border-white/5 shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 group">
+                                <button
+                                    onClick={() => setShowPayModal(true)}
+                                    className="bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-300 border border-yellow-600/30 hover:border-yellow-500/50 text-xs font-bold rounded-lg shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 group"
+                                >
                                     <span className="opacity-50 group-hover:opacity-100 transition-opacity">🏆</span> PAGAR
                                 </button>
 
