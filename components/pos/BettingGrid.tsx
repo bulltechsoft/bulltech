@@ -217,7 +217,7 @@ export const BettingGrid = () => {
             </div>
 
             {/* Scrollable Area (Grid 1-36 in 3 Columns) */}
-            <div className="flex-1 p-1 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 p-1 overflow-y-auto min-h-0 custom-scrollbar">
                 <div className="grid grid-cols-3 gap-1">
                     {ANIMALITOS_DATA.slice(2).map((animal) => (
                         <Cell
