@@ -22,52 +22,57 @@ export const TicketCart = () => {
         setIsProcessing(true);
 
         try {
-            // 1. Preparar Payload para RPC
-            // NOTA: En produccion IDs deben venir de Auth/Context
-            const payload = {
-                p_comercializadora_id: 'd9e0f3a4-8b6a-4d3c-9e2f-1a2b3c4d5e6f', // Mock/Admin ID
-                p_taquilla_id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef', // Mock/Taquilla ID
-                p_moneda: moneda,
-                p_items: items.map(i => ({
-                    loteria_id: i.loteria_id,
-                    sorteo_id: i.sorteo_id,
-                    elemento_codigo: i.elemento_codigo,
-                    monto: i.monto
-                }))
-            };
+            // 1. Verificar sesión activa
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+            console.log('🔐 Usuario activo:', currentUser?.id, currentUser?.email);
+            if (!currentUser) throw new Error("No hay sesión activa. Por favor inicia sesión.");
 
-            // 2. Llamar RPC (Simulado por ahora para fallback, pero intentamos RPC real si existe)
-            // const { data, error } = await supabase.rpc('procesar_apuesta', payload);
+            // 2. IDs de Taquilla y Comercializadora
+            // TODO (Producción): Leer desde perfil del usuario autenticado
+            const TAQUILLA_ID = 'bbbbbbbb-0000-0000-0000-000000000001';
+            const COMERCIALIZADORA_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
 
-            // SIMULACION DE EXITO (Para demo frontend sin backend full configurado)
-            // En implementacion real, descomentar RPC arriba y usar data
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const mockResponse = {
-                serial: Math.random().toString(36).substr(2, 10).toUpperCase(),
-                numero_ticket: Math.floor(Math.random() * 100000000).toString().padStart(8, '0'),
-                fecha_venta: new Date().toISOString(),
-                total: total
-            };
+            // 3. Construir payload para el RPC
+            //    El stored procedure genera ticket_numero y serial_secreto en la BD
+            const jugadas = items.map(item => ({
+                sorteo_id: item.sorteo_id,
+                loteria_id: item.loteria_id,
+                elemento_codigo: item.elemento_codigo,
+                monto: item.monto,           // nombre exacto que espera el RPC
+                premio_estimado: item.premio_estimado ?? item.monto * 30,
+            }));
 
-            // 3. Exito
-            setLastProcessedTicket({
-                serial: mockResponse.serial,
-                numero_ticket: mockResponse.numero_ticket,
-                fecha_venta: mockResponse.fecha_venta,
-                items: [...items], // Guardamos copia de items procesados para el recibo
-                total: total
+            // 4. Llamar al RPC — toda la lógica de inserción vive en la BD
+            const { data: rpcData, error: rpcError } = await supabase.rpc('procesar_apuesta', {
+                p_taquilla_id: TAQUILLA_ID,
+                p_moneda_apuesta: (moneda || 'VES') as 'VES' | 'USD',
+                p_jugadas: jugadas,
             });
 
-            // 4. Imprimir y Limpiar
+            if (rpcError) throw new Error(`Error procesando apuesta: ${rpcError.message}`);
+            if (!rpcData) throw new Error('El servidor no devolvió datos del ticket.');
+
+            console.log('✅ Ticket procesado por RPC:', rpcData);
+
+            // 5. Guardar resultado en el store (para impresión)
+            //    El RPC devuelve: ticket_numero, serial_secreto, fecha_venta
+            setLastProcessedTicket({
+                ticket_numero: rpcData.ticket_numero || rpcData.id || 'TN-??????',
+                serial_secreto: rpcData.serial_secreto || '––––––––',
+                fecha_venta: rpcData.fecha_venta || new Date().toISOString(),
+                items: [...items],
+                total: total,
+            });
+
+            // 6. Imprimir recibo y limpiar carrito
             setTimeout(() => {
                 window.print();
-                // Opcional: limpiar despues de imprimir
-                // clearCart(); 
-            }, 100);
+                clearCart();
+            }, 500);
 
-        } catch (error) {
-            console.error('Error procesando:', error);
-            alert('Error al procesar la venta. Intente de nuevo.');
+        } catch (error: any) {
+            console.error('❌ Error procesando venta:', error);
+            alert(`Error al procesar: ${error.message}`);
         } finally {
             setIsProcessing(false);
         }

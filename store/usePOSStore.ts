@@ -36,8 +36,8 @@ interface POSState {
 
     // Estado de Ticket Procesado (Para impresión)
     lastProcessedTicket: {
-        serial: string;
-        numero_ticket: string;
+        ticket_numero: string;   // Código público visible al taquillero (Ej: TN-000018)
+        serial_secreto: string;  // PIN interno anti-fraude, solo aparece en el recibo impreso
         fecha_venta: string;
         items: TicketItem[];
         total: number;

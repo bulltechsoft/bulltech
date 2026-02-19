@@ -1,4 +1,4 @@
-'use client';
+
 
 import React from 'react';
 import { usePOSStore } from '@/store/usePOSStore';
@@ -9,109 +9,95 @@ export const TicketReceipt = () => {
 
     if (!ticket) return null;
 
-    const items = ticket.items;
+    const items = ticket.items || [];
     const total = ticket.total;
 
-    // Agrupar items POR LOTERIA
-    const groupedItems = items.reduce((acc, item) => {
-        const key = item.loteria_nombre;
-        if (!acc[key]) {
-            acc[key] = [];
-        }
-        acc[key].push(item);
-        return acc;
-    }, {} as Record<string, typeof items>);
+    // Agrupar items: LOTERIA -> SORTEO
+    const groupedData = items.reduce((acc: any, item: any) => {
+        const loteria = item.loteria_nombre || 'Loteria';
+        const sorteo = item.sorteo_nombre || 'Sorteo';
 
-    // Formatear Fecha Venta real
+        if (!acc[loteria]) {
+            acc[loteria] = {};
+        }
+        if (!acc[loteria][sorteo]) {
+            acc[loteria][sorteo] = [];
+        }
+        acc[loteria][sorteo].push(item);
+        return acc;
+    }, {});
+
+    // Formatear Fecha Venta
     const fecha = new Date(ticket.fecha_venta).toLocaleString('es-VE', {
-        day: '2-digit', month: '2-digit', year: '2-digit',
+        day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit', hour12: true
     });
 
-    // Helper formato hora compacta (12pm, 10am)
-    const formatTime = (timeStr: string) => {
-        if (!timeStr) return '';
-        // Asume timeStr es "HH:MM:SS" o "HH:MM"
-        const [hours, minutes] = timeStr.split(':');
-        const h = parseInt(hours, 10);
-        const ampm = h >= 12 ? 'pm' : 'am';
-        const h12 = h % 12 || 12;
-        return `${h12}${ampm}`;
-    };
-
     return (
-        <div className="hidden print:block print:w-full print:max-w-[58mm] print:font-mono print:text-black print:text-[12px] print:leading-tight">
-            {/* Margenes manejados por @page en CSS global */}
-            <div className="px-1 pt-2 pb-8">
+        <div className="hidden print:block print:w-[58mm] print:overflow-hidden print:font-mono print:text-black print:text-[10px] print:leading-tight bg-white text-black p-2">
+            <style jsx global>{`
+                @media print {
+                    @page { margin: 0; size: 58mm auto; }
+                    body { margin: 0; padding: 0; }
+                }
+            `}</style>
 
-                {/* Header */}
-                <div className="text-center mb-2">
-                    <h1 className="text-sm font-black uppercase tracking-wider">AGENCIA: AGENCIA DEMO</h1>
-                    <p className="font-bold text-[10px] mt-0.5">Taquilla: 01</p>
-                    <p className="font-bold text-[10px] uppercase">{fecha}</p>
-
-                    <div className="flex justify-between px-1 mt-2 text-[11px] font-black uppercase">
-                        <span>N/T:{ticket.numero_ticket}</span>
-                    </div>
-                    <div className="text-center text-[11px] font-black uppercase">
-                        <span>S/N:{ticket.serial}</span>
+            <div className="flex flex-col items-center mb-2">
+                <h2 className="font-bold text-xs uppercase">AGENCIA DEMO</h2>
+                <div className="text-[9px]">RIF: J-12345678-0</div>
+                <div className="text-[9px] mt-1">{fecha}</div>
+                <div className="w-full mt-1 text-[9px] font-bold">
+                    <div className="flex justify-between">
+                        <span>TICKET: {ticket.ticket_numero}</span>
+                        <span>SERIAL: {ticket.serial_secreto}</span>
                     </div>
                 </div>
+            </div>
 
-                <div className="border-b-2 border-dashed border-black mb-1" />
+            <div className="border-b border-dashed border-black mb-1"></div>
 
-                {/* Column Headers */}
-                <div className="flex justify-between text-[10px] font-bold border-b border-black mb-1 pb-1 uppercase">
-                    <span className="w-[45%] text-left">DESCRIPCION</span>
-                    <span className="w-[20%] text-center">HORA</span>
-                    <span className="w-[30%] text-right">MONTO</span>
-                </div>
+            {/* Iterar Loterias */}
+            {Object.keys(groupedData).map((loteria) => (
+                <div key={loteria} className="mb-2">
+                    <div className="font-bold text-[10px] uppercase mb-0.5 border-b border-black inline-block">
+                        {loteria}
+                    </div>
 
-                {/* Grouped Bets */}
-                {Object.entries(groupedItems).map(([loteriaNombre, groupItems]) => (
-                    <div key={loteriaNombre} className="mb-2">
-                        {/* Header Group: Lotería */}
-                        <div className="mb-0.5">
-                            <p className="font-black uppercase text-xs border-b border-black/50 inline-block">
-                                {loteriaNombre}
-                            </p>
+                    {/* Iterar Sorteos dentro de Loteria */}
+                    {Object.keys(groupedData[loteria]).map((sorteo) => (
+                        <div key={sorteo} className="ml-0 mb-1">
+                            <div className="text-[9px] font-bold italic mb-0.5 mt-0.5 text-gray-800">
+                                -- {sorteo} --
+                            </div>
+
+                            <div className="flex flex-wrap gap-x-2 gap-y-0.5 pl-1">
+                                {groupedData[loteria][sorteo].map((item: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between w-full text-[10px]">
+                                        <span className="font-bold">
+                                            {item.elemento_codigo.padStart(2, '0')} - {item.elemento_nombre.substring(0, 10)}
+                                        </span>
+                                        <span className="font-bold">
+                                            {parseFloat(item.monto).toFixed(2)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
-
-                        {/* Items */}
-                        <div className="flex flex-col gap-0.5">
-                            {groupItems.map((item, i) => (
-                                <div key={i} className="flex justify-between items-center font-bold text-[11px]">
-                                    {/* Col 1: Animal (Cortado inteligente) */}
-                                    <span className="w-[45%] whitespace-nowrap overflow-hidden text-left uppercase">
-                                        {item.elemento_codigo.padStart(2, '0')}-{item.elemento_nombre.substring(0, 8)}
-                                    </span>
-                                    {/* Col 2: Hora (10am) */}
-                                    <span className="w-[20%] text-center text-[10px] uppercase">
-                                        {formatTime(item.hora_sorteo)}
-                                    </span>
-                                    {/* Col 3: Monto (Sin decimales) */}
-                                    <span className="w-[30%] text-right">
-                                        {Math.floor(item.monto)}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                ))}
-
-                <div className="border-t-2 border-dashed border-black mt-2 mb-2" />
-
-                {/* Footer Totals */}
-                <div className="flex justify-between items-end font-black text-lg mb-6 uppercase">
-                    <span>TOTAL {moneda}:</span>
-                    <span>{Math.floor(total)}</span>
+                    ))}
                 </div>
+            ))}
 
-                {/* Legal / Footer Minimalista */}
-                <div className="text-center text-[11px] font-black pb-4 uppercase">
-                    <p className="mb-1">** CADUCA A LOS 3 DIAS **</p>
-                    <p>** SUERTE **</p>
-                </div>
+            <div className="border-t border-dashed border-black mt-2 mb-1"></div>
+
+            <div className="flex justify-between text-xs font-bold uppercase mt-1">
+                <span>TOTAL {moneda}:</span>
+                <span className="text-sm">{Number(total).toFixed(2)}</span>
+            </div>
+
+            <div className="mt-4 text-[8px] text-center font-medium uppercase">
+                <p>CADUCA A LOS 3 DIAS</p>
+                <p>VERIFIQUE SU TICKET</p>
+                <p>GRACIAS POR SU PREFERENCIA</p>
             </div>
         </div>
     );

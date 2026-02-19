@@ -216,8 +216,8 @@ export const BettingGrid = () => {
                 </div>
             </div>
 
-            {/* Scrollable Area (Grid 1-36 in 3 Columns) */}
-            <div className="flex-1 p-1 overflow-y-auto min-h-0 custom-scrollbar">
+            {/* Grid sin scroll (1-36 en 3 columnas) */}
+            <div className="flex-1 p-1 overflow-hidden min-h-0">
                 <div className="grid grid-cols-3 gap-1">
                     {ANIMALITOS_DATA.slice(2).map((animal) => (
                         <Cell
@@ -240,7 +240,7 @@ const Cell = ({ data, selected, onClick, compact = false }: { data: { codigo: st
         <button
             onClick={onClick}
             className={`
-                relative w-full ${compact ? 'h-10' : 'h-12'} flex flex-col items-center justify-center overflow-hidden rounded-md border transition-all duration-75 group shadow-sm
+                relative w-full ${compact ? 'h-8' : 'h-12'} flex flex-col items-center justify-center overflow-hidden rounded-md border transition-all duration-75 group shadow-sm
                 ${selected
                     ? 'border-yellow-400 z-10 ring-1 ring-yellow-400 scale-[0.98] brightness-125'
                     : 'border-transparent hover:border-white/20 hover:brightness-110'
@@ -249,7 +249,7 @@ const Cell = ({ data, selected, onClick, compact = false }: { data: { codigo: st
             `}
         >
             <div className="flex flex-col items-center leading-none">
-                <span className={`${compact ? 'text-xl' : 'text-3xl'} font-black text-white drop-shadow-md tracking-tighter`}>{data.codigo}</span>
+                <span className={`${compact ? 'text-base' : 'text-3xl'} font-black text-white drop-shadow-md tracking-tighter`}>{data.codigo}</span>
                 {!compact && <span className="text-[7px] font-bold text-white/90 uppercase tracking-tighter mt-0.5">{data.nombre}</span>}
             </div>
         </button>
