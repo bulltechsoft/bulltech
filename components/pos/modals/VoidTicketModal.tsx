@@ -55,10 +55,10 @@ function DigitalTicket({ ticket, moneda = 'VES' }: { ticket: any; moneda?: strin
                     <p className="text-white font-bold tracking-widest">{ticket.ticket_numero || '—'}</p>
                 </div>
                 <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${isAnulado
-                        ? 'bg-red-900/40 text-red-400 border-red-500/30'
-                        : ticket.estado === 'PAGADO'
-                            ? 'bg-emerald-900/40 text-emerald-400 border-emerald-500/30'
-                            : 'bg-purple-900/40 text-purple-300 border-purple-500/30'
+                    ? 'bg-red-900/40 text-red-400 border-red-500/30'
+                    : ticket.estado === 'PAGADO'
+                        ? 'bg-emerald-900/40 text-emerald-400 border-emerald-500/30'
+                        : 'bg-purple-900/40 text-purple-300 border-purple-500/30'
                     }`}>
                     {ticket.estado || 'ACTIVO'}
                 </span>
@@ -155,9 +155,9 @@ export const VoidTicketModal = ({ isOpen, onClose }: VoidTicketModalProps) => {
                 .single();
 
             if (dbError) {
-                setError(dbError.code === 'PGRST116' ? 'Ticket no encontrado' : 'Error al buscar ticket');
+                setError(dbError.code === 'PGRST116' ? 'Ticket no encontrado.' : 'Error al buscar el ticket.');
             } else {
-                if (data.estado === 'ANULADO') setError('Este ticket ya está anulado.');
+                // Mostramos el ticket siempre — la UI informará si no es anulable
                 setTicket(data);
             }
         } catch {
@@ -170,20 +170,36 @@ export const VoidTicketModal = ({ isOpen, onClose }: VoidTicketModalProps) => {
     const handleVoid = async () => {
         if (!ticket) return;
         setLoading(true);
+        setError('');
         try {
-            const { error: ticketError } = await supabase
-                .from('tickets')
-                .update({ estado: 'ANULADO' })
-                .eq('id', ticket.id);
+            // Obtener taquilla_id del perfil del usuario autenticado
+            const { data: { user } } = await supabase.auth.getUser();
+            let taquillaId = 'bbbbbbbb-0000-0000-0000-000000000001'; // fallback demo
+            if (user) {
+                const { data: perfil } = await supabase
+                    .from('perfiles')
+                    .select('taquilla_id')
+                    .eq('id', user.id)
+                    .maybeSingle();
+                if (perfil?.taquilla_id) taquillaId = perfil.taquilla_id;
+            }
 
-            if (ticketError) throw ticketError;
+            // RPC — la BD valida estado, propietario y ventana de tiempo
+            const { data: rpcData, error: rpcError } = await supabase.rpc('anular_ticket', {
+                p_taquilla_id: taquillaId,
+                p_serial_secreto: serialInput.trim().toUpperCase(),
+            });
 
+            if (rpcError) throw new Error(rpcError.message);
+            if (rpcData?.status !== 'OK') throw new Error(rpcData?.message || 'No se pudo anular el ticket.');
+
+            console.log('✅ Ticket anulado por RPC:', rpcData);
             setSuccess(true);
             setTicket(null);
             setSerialInput('');
             setTimeout(() => { setSuccess(false); onClose(); }, 2500);
         } catch (err: any) {
-            setError(`Error al anular: ${err.message}`);
+            setError(err.message);
         } finally {
             setLoading(false);
         }
@@ -275,7 +291,35 @@ export const VoidTicketModal = ({ isOpen, onClose }: VoidTicketModalProps) => {
                                         >
                                             <DigitalTicket ticket={ticket} />
 
-                                            {ticket.estado !== 'ANULADO' && (
+                                            {/* ── Bloque acción según estado ── */}
+                                            {ticket.estado === 'ANULADO' && (
+                                                <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/60 border border-white/10">
+                                                    <span className="text-2xl">🚫</span>
+                                                    <div>
+                                                        <p className="text-slate-300 font-bold text-xs">Ya estaba anulado</p>
+                                                        <p className="text-slate-500 text-[10px]">Este ticket ya fue anulado anteriormente.</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {(ticket.estado === 'PAGADO') && (
+                                                <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-900/20 border border-emerald-500/30">
+                                                    <span className="text-2xl">✅</span>
+                                                    <div>
+                                                        <p className="text-emerald-300 font-bold text-xs">Premio ya pagado</p>
+                                                        <p className="text-emerald-500/70 text-[10px]">No se puede anular un ticket cuyo premio ya fue entregado.</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {(ticket.estado === 'GANADOR') && (
+                                                <div className="flex items-center gap-3 p-3 rounded-xl bg-yellow-900/20 border border-yellow-500/30">
+                                                    <span className="text-2xl">🏆</span>
+                                                    <div>
+                                                        <p className="text-yellow-300 font-bold text-xs">Ticket premiado — no anulable</p>
+                                                        <p className="text-yellow-500/70 text-[10px]">Este ticket tiene un premio pendiente. Usa "Pagar Premio" para procesarlo.</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {(!ticket.estado || ticket.estado === 'PENDIENTE' || ticket.estado === 'ACTIVO') && (
                                                 <button
                                                     onClick={handleVoid}
                                                     disabled={loading}

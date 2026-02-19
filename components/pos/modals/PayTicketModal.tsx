@@ -178,6 +178,7 @@ export const PayTicketModal = ({ isOpen, onClose }: PayTicketModalProps) => {
     const [ticket, setTicket] = useState<any | null>(null);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
+    const [montoPagado, setMontoPagado] = useState<number | null>(null);
 
     const handleSearch = async () => {
         if (!serialInput.trim()) return;
@@ -223,16 +224,33 @@ export const PayTicketModal = ({ isOpen, onClose }: PayTicketModalProps) => {
     const handlePay = async () => {
         if (!ticket || ticket.estado !== 'GANADOR') return;
         setPaying(true);
+        setError('');
         try {
-            const { error: payError } = await supabase
-                .from('tickets')
-                .update({ estado: 'PAGADO' })
-                .eq('id', ticket.id);
+            // Obtener ID de taquilla del perfil autenticado
+            const { data: { user } } = await supabase.auth.getUser();
+            let taquillaId = 'bbbbbbbb-0000-0000-0000-000000000001'; // fallback demo
+            if (user) {
+                const { data: perfil } = await supabase
+                    .from('perfiles')
+                    .select('taquilla_id')
+                    .eq('id', user.id)
+                    .maybeSingle();
+                if (perfil?.taquilla_id) taquillaId = perfil.taquilla_id;
+            }
 
-            if (payError) throw payError;
+            // Llamar al RPC — la BD valida la propiedad del ticket y registra el pago
+            const { data: rpcData, error: rpcError } = await supabase.rpc('pagar_premio', {
+                p_taquilla_id: taquillaId,
+                p_serial_secreto: serialInput.trim().toUpperCase(),
+            });
 
+            if (rpcError) throw new Error(rpcError.message);
+            if (rpcData?.status !== 'OK') throw new Error(rpcData?.message || 'Error desconocido al pagar.');
+
+            console.log('✅ Premio pagado por RPC:', rpcData);
+            setMontoPagado(Number(rpcData.monto_pagado ?? ticket.premio_total ?? 0));
             setSuccess(true);
-            setTimeout(() => { setSuccess(false); handleClose(); }, 2500);
+            setTimeout(() => { setSuccess(false); handleClose(); }, 3000);
         } catch (err: any) {
             setError(`Error al registrar pago: ${err.message}`);
         } finally {
@@ -245,6 +263,7 @@ export const PayTicketModal = ({ isOpen, onClose }: PayTicketModalProps) => {
         setTicket(null);
         setError('');
         setSuccess(false);
+        setMontoPagado(null);
         onClose();
     };
 
@@ -364,7 +383,13 @@ export const PayTicketModal = ({ isOpen, onClose }: PayTicketModalProps) => {
                                     </div>
                                     <h3 className="text-white font-black text-xl mb-1">¡Premio Pagado!</h3>
                                     <p className="text-slate-400 text-sm">El pago fue registrado exitosamente.</p>
-                                    <p className="text-slate-600 text-xs mt-1">El ticket quedó marcado como PAGADO.</p>
+                                    {montoPagado !== null && montoPagado > 0 && (
+                                        <div className="mt-3 px-5 py-2.5 rounded-xl bg-yellow-900/20 border border-yellow-500/30">
+                                            <p className="text-[10px] text-yellow-500 uppercase tracking-widest mb-0.5">Monto entregado</p>
+                                            <p className="text-yellow-300 font-black text-2xl">{bs(montoPagado)}</p>
+                                        </div>
+                                    )}
+                                    <p className="text-slate-600 text-xs mt-3">El ticket quedó marcado como PAGADO.</p>
                                 </motion.div>
                             )}
                         </div>
